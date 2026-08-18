@@ -1,0 +1,65 @@
+<div class="min-h-screen grid grid-cols-1 md:grid-cols-[38%_1fr]">
+  <div class="bg-ink text-white flex flex-col justify-between p-8 md:p-12 min-h-[280px] md:min-h-screen">
+    <div class="font-extrabold text-[15px] tracking-[0.03em]">FOOT STRIKE</div>
+    <div class="font-extrabold text-[34px] leading-[1.25] text-headline-tint max-w-[340px]">
+      Run together. Track everything.
+    </div>
+    <div class="text-[13px] text-muted">&copy; 2026 Foot Strike</div>
+  </div>
+
+  <div class="flex items-center justify-center p-8 md:p-12">
+    <div class="w-full max-w-[380px]">
+      <div class="font-extrabold text-2xl mb-1">Sign in</div>
+      <div class="text-sm text-muted mb-7">New here? Pick a role &mdash; it only matters the first time you sign in.</div>
+
+      <div class="text-xs font-bold uppercase tracking-[0.04em] text-faint mb-2.5">I am a&hellip;</div>
+      <div class="grid grid-cols-2 gap-2 mb-6">
+        <button
+          type="button"
+          (click)="selectAthlete()"
+          class="cursor-pointer p-3.5 rounded-[10px] text-center border-[1.5px]"
+          [class.bg-accent-tint]="selectedRole() === 'athlete'"
+          [class.border-accent]="selectedRole() === 'athlete'"
+          [class.bg-white]="selectedRole() !== 'athlete'"
+          [class.border-border]="selectedRole() !== 'athlete'"
+        >
+          <div
+            class="font-bold text-sm"
+            [class.text-accent-hover]="selectedRole() === 'athlete'"
+            [class.text-ink]="selectedRole() !== 'athlete'"
+          >
+            Athlete
+          </div>
+          <div class="text-[11px] text-muted mt-0.5">Log runs &amp; history</div>
+        </button>
+
+        <button
+          type="button"
+          (click)="selectCoach()"
+          class="cursor-pointer p-3.5 rounded-[10px] text-center border-[1.5px]"
+          [class.bg-accent-tint]="selectedRole() === 'coach'"
+          [class.border-accent]="selectedRole() === 'coach'"
+          [class.bg-white]="selectedRole() !== 'coach'"
+          [class.border-border]="selectedRole() !== 'coach'"
+        >
+          <div
+            class="font-bold text-sm"
+            [class.text-accent-hover]="selectedRole() === 'coach'"
+            [class.text-ink]="selectedRole() !== 'coach'"
+          >
+            Coach
+          </div>
+          <div class="text-[11px] text-muted mt-0.5">Guide your runners</div>
+        </button>
+      </div>
+
+      <div #googleButton class="flex justify-center"></div>
+
+      @if (errorMessage()) {
+        <div class="text-xs text-red-600 mt-3">{{ errorMessage() }}</div>
+      } @else {
+        <div class="text-xs text-faint mt-3.5">You'll be asked to allow access with your Google account.</div>
+      }
+    </div>
+  </div>
+</div>

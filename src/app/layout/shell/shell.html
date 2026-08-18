@@ -1,0 +1,44 @@
+<div>
+  <div class="flex items-center justify-between px-8 h-16 border-b border-border">
+    <div class="flex items-center gap-8">
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-6 rounded-[7px] bg-ink"></div>
+        <div class="font-extrabold text-base">Foot Strike</div>
+      </div>
+      <div class="flex gap-6">
+        <a
+          routerLink="/dashboard"
+          routerLinkActive
+          #dashboardActive="routerLinkActive"
+          [class.text-accent]="dashboardActive.isActive"
+          [class.border-accent]="dashboardActive.isActive"
+          [class.text-muted]="!dashboardActive.isActive"
+          [class.border-transparent]="!dashboardActive.isActive"
+          class="cursor-pointer py-3.5 px-1 text-[15px] font-semibold border-b-2 hover:text-accent no-underline"
+        >
+          Dashboard
+        </a>
+        <a
+          routerLink="/settings"
+          routerLinkActive
+          #settingsActive="routerLinkActive"
+          [class.text-accent]="settingsActive.isActive"
+          [class.border-accent]="settingsActive.isActive"
+          [class.text-muted]="!settingsActive.isActive"
+          [class.border-transparent]="!settingsActive.isActive"
+          class="cursor-pointer py-3.5 px-1 text-[15px] font-semibold border-b-2 hover:text-accent no-underline"
+        >
+          Settings
+        </a>
+      </div>
+    </div>
+    <div class="flex items-center gap-4">
+      <span class="text-xs font-bold text-accent-hover bg-accent-tint py-1 px-2.5 rounded-full">{{ roleLabel }}</span>
+      <button type="button" (click)="signOut()" class="bg-transparent border-none text-sm text-muted font-semibold cursor-pointer">
+        Sign out
+      </button>
+    </div>
+  </div>
+
+  <router-outlet />
+</div>

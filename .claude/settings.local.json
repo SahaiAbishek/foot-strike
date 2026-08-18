@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(java -version)",
+      "Bash(mvn -version)",
+      "Bash(mvn -q clean compile)",
+      "Bash(mvn -q dependency:tree)",
+      "Bash(mvn dependency:tree)",
+      "Bash(/usr/libexec/java_home *)",
+      "Bash(brew list *)",
+      "Bash(curl -s \"https://repo1.maven.org/maven2/org/projectlombok/lombok/maven-metadata.xml\")",
+      "Read(//Users/abhisheksahai/.m2/repository/org/projectlombok/**)",
+      "Bash(mvn clean *)",
+      "Bash(mvn -X clean compile)",
+      "Bash(nohup mvn -q spring-boot:run)",
+      "Bash(echo \"started with pid $!\")",
+      "Bash(curl -s -o /dev/null -w \"status: %{http_code}\\\\n\" http://localhost:8080/api/strava/status)",
+      "Bash(curl -s http://localhost:8080/api/strava/status)",
+      "Bash(curl -sI http://localhost:8080/api/strava/connect)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8080/api/strava/activities)",
+      "Bash(kill 34753 34770)",
+      "Bash(npx ng *)"
+    ]
+  }
+}

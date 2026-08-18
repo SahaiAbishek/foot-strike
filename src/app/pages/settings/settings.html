@@ -1,0 +1,97 @@
+<div class="max-w-[640px] mx-auto px-8 py-10">
+  <div class="font-extrabold text-2xl mb-8">Settings</div>
+
+  <div class="font-bold text-sm uppercase tracking-[0.04em] text-faint mb-3">Profile</div>
+  <div class="border border-border rounded-xl p-5 mb-8 flex flex-col gap-4">
+    <div class="flex justify-between items-center">
+      <div class="text-sm text-muted">Name</div>
+      <div class="text-sm font-semibold">{{ auth.currentUser()?.name }}</div>
+    </div>
+    <div class="flex justify-between items-center">
+      <div class="text-sm text-muted">Email</div>
+      <div class="text-sm font-semibold">{{ auth.currentUser()?.email }}</div>
+    </div>
+    <div class="flex justify-between items-center">
+      <div class="text-sm text-muted">Role</div>
+      <div class="text-sm font-semibold">{{ roleLabel }}</div>
+    </div>
+  </div>
+
+  <div class="font-bold text-sm uppercase tracking-[0.04em] text-faint mb-3">Connected accounts</div>
+  <div class="border border-border rounded-xl p-5 mb-8 flex justify-between items-center">
+    <div>
+      <div class="text-sm font-semibold">Strava</div>
+      <div class="text-xs text-muted mt-0.5">{{ auth.stravaConnected() ? 'Connected' : 'Not connected' }}</div>
+    </div>
+    <button
+      type="button"
+      (click)="toggleStrava()"
+      class="h-9 px-4 rounded-lg font-bold text-[13px] cursor-pointer border"
+      [class.bg-accent]="!auth.stravaConnected()"
+      [class.text-white]="!auth.stravaConnected()"
+      [class.border-accent]="!auth.stravaConnected()"
+      [class.bg-white]="auth.stravaConnected()"
+      [class.text-ink]="auth.stravaConnected()"
+      [class.border-border]="auth.stravaConnected()"
+    >
+      {{ auth.stravaConnected() ? 'Disconnect' : 'Connect' }}
+    </button>
+  </div>
+
+  <div class="font-bold text-sm uppercase tracking-[0.04em] text-faint mb-3">Units</div>
+  <div class="border border-border rounded-xl p-5 mb-8 flex justify-between items-center">
+    <div>
+      <div class="text-sm font-semibold">Distance unit</div>
+      <div class="text-xs text-muted mt-0.5">Applies to distance and pace across the dashboard</div>
+    </div>
+    <button
+      type="button"
+      (click)="toggleUnit()"
+      class="h-9 px-4 rounded-lg font-bold text-[13px] cursor-pointer border bg-white text-ink border-border"
+    >
+      {{ auth.unit() === 'km' ? 'Kilometers' : 'Miles' }}
+    </button>
+  </div>
+
+  <div class="font-bold text-sm uppercase tracking-[0.04em] text-faint mb-3">Notifications</div>
+  <div class="border border-border rounded-xl p-5 flex flex-col gap-[18px]">
+    <div class="flex justify-between items-center">
+      <div>
+        <div class="text-sm font-semibold">Weekly summary email</div>
+        <div class="text-xs text-muted mt-0.5">A recap of your week&rsquo;s runs</div>
+      </div>
+      <button
+        type="button"
+        (click)="toggleWeeklyEmail()"
+        class="relative w-10 h-[22px] rounded-full flex-none cursor-pointer border-none"
+        [class.bg-accent]="auth.weeklyEmail()"
+        [class.bg-border]="!auth.weeklyEmail()"
+      >
+        <span
+          class="absolute top-0.5 w-[18px] h-[18px] rounded-full bg-white transition-[left] duration-150"
+          [class.left-5]="auth.weeklyEmail()"
+          [class.left-0.5]="!auth.weeklyEmail()"
+        ></span>
+      </button>
+    </div>
+    <div class="flex justify-between items-center">
+      <div>
+        <div class="text-sm font-semibold">Group run reminders</div>
+        <div class="text-xs text-muted mt-0.5">Nudges before community runs</div>
+      </div>
+      <button
+        type="button"
+        (click)="toggleGroupReminders()"
+        class="relative w-10 h-[22px] rounded-full flex-none cursor-pointer border-none"
+        [class.bg-accent]="auth.groupReminders()"
+        [class.bg-border]="!auth.groupReminders()"
+      >
+        <span
+          class="absolute top-0.5 w-[18px] h-[18px] rounded-full bg-white transition-[left] duration-150"
+          [class.left-5]="auth.groupReminders()"
+          [class.left-0.5]="!auth.groupReminders()"
+        ></span>
+      </button>
+    </div>
+  </div>
+</div>

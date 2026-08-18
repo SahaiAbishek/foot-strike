@@ -1,0 +1,223 @@
+<div class="max-w-[880px] mx-auto px-8 py-10">
+  <div class="font-extrabold text-2xl mb-0.5">Your running history</div>
+  <div class="flex items-center justify-between mb-8">
+    <div class="text-sm text-muted">Synced from Strava</div>
+    @if (auth.stravaConnected()) {
+      <button
+        type="button"
+        (click)="sync()"
+        [disabled]="runs.isSyncing()"
+        class="h-9 px-4 rounded-lg font-bold text-[13px] cursor-pointer border bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {{ runs.isSyncing() ? 'Syncing…' : 'Sync' }}
+      </button>
+    }
+  </div>
+
+  @if (!auth.stravaConnected()) {
+    <div class="max-w-[480px] bg-accent-tint border border-border rounded-[14px] p-8">
+      <div class="font-bold text-lg mb-2">Connect your Strava account</div>
+      <div class="text-sm text-body-tint leading-normal mb-5">
+        Link Strava to pull in your runs, distance, and pace automatically &mdash; no manual logging.
+      </div>
+      <button
+        type="button"
+        (click)="connectStrava()"
+        class="h-11 px-5 rounded-[10px] border-none bg-accent text-white font-bold text-sm cursor-pointer"
+      >
+        Connect to Strava
+      </button>
+    </div>
+  } @else {
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-9">
+      <div class="border border-border rounded-xl p-4">
+        <div class="text-xs text-muted mb-1">Total distance</div>
+        <div class="font-extrabold text-[22px]">{{ displayStats().totalDistance }}</div>
+      </div>
+      <div class="border border-border rounded-xl p-4">
+        <div class="text-xs text-muted mb-1">Total runs</div>
+        <div class="font-extrabold text-[22px]">{{ displayStats().totalRuns }}</div>
+      </div>
+      <div class="border border-border rounded-xl p-4">
+        <div class="text-xs text-muted mb-1">Avg pace</div>
+        <div class="font-extrabold text-[22px]">{{ displayStats().avgPace }}</div>
+      </div>
+      <div class="border border-border rounded-xl p-4">
+        <div class="text-xs text-muted mb-1">Streak</div>
+        <div class="font-extrabold text-[22px]">{{ displayStats().streak }}</div>
+      </div>
+    </div>
+
+    @if (analytics.error(); as err) {
+      <div class="mb-9 border border-border rounded-xl p-4 bg-accent-tint text-sm text-body-tint">
+        {{ err }}
+      </div>
+    }
+
+    <div class="mb-9">
+      <div class="text-base font-bold mb-3">Weekly log</div>
+      <div class="overflow-x-auto border border-border rounded-xl">
+        <table class="w-full border-collapse text-sm">
+          <thead>
+            <tr class="border-b border-border">
+              <th class="text-left font-semibold text-xs text-muted py-2.5 px-3">Week of</th>
+              @for (day of dayLabels; track day) {
+                <th class="text-right font-semibold text-xs text-muted py-2.5 px-3">{{ day }}</th>
+              }
+              <th class="text-right font-semibold text-xs text-muted py-2.5 px-3">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (week of weekRows(); track week.weekLabel) {
+              <tr class="border-b border-border last:border-b-0">
+                <td class="py-2.5 px-3 font-medium">{{ week.weekLabel }}</td>
+                @for (day of week.days; track $index) {
+                  <td class="py-2.5 px-3 text-right text-body-tint">{{ day }}</td>
+                }
+                <td class="py-2.5 px-3 text-right font-semibold">{{ week.total }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="flex justify-center mt-4">
+        <button
+          type="button"
+          (click)="loadMoreWeeks()"
+          [disabled]="analytics.isLoadingWeeks()"
+          class="h-9 px-4 rounded-lg font-bold text-[13px] cursor-pointer border bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {{ analytics.isLoadingWeeks() ? 'Loading…' : 'Load more' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="font-extrabold text-xl mb-4 pt-2 border-t border-border">Analytics</div>
+
+    @if (records(); as r) {
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5 mb-9">
+        <div class="border border-border rounded-xl p-4">
+          <div class="text-xs text-muted mb-1">Longest run</div>
+          <div class="font-extrabold text-[22px]">{{ r.longestRun }}</div>
+          @if (r.longestRunDate) {
+            <div class="text-xs text-muted mt-1">{{ r.longestRunDate }}</div>
+          }
+        </div>
+        <div class="border border-border rounded-xl p-4">
+          <div class="text-xs text-muted mb-1">Fastest pace</div>
+          <div class="font-extrabold text-[22px]">{{ r.fastestPace }}</div>
+          @if (r.fastestPaceDate) {
+            <div class="text-xs text-muted mt-1">{{ r.fastestPaceDate }}</div>
+          }
+        </div>
+        <div class="border border-border rounded-xl p-4">
+          <div class="text-xs text-muted mb-1">Longest streak</div>
+          <div class="font-extrabold text-[22px]">{{ r.longestStreak }}</div>
+        </div>
+      </div>
+    }
+
+    <div class="border border-border rounded-xl p-4 mb-9 max-w-[380px]">
+      <div class="text-sm font-bold mb-1">4-week trend</div>
+      @if (trend(); as t) {
+        <div class="text-2xl font-extrabold" [class.text-accent-hover]="t.direction === 'up'" [class.text-muted]="t.direction === 'down'">
+          {{ t.direction === 'up' ? '▲' : '▼' }} {{ t.changePercent < 0 ? -t.changePercent : t.changePercent }}%
+        </div>
+        <div class="text-xs text-muted mt-1">vs. the previous 4 weeks</div>
+      } @else {
+        <div class="text-sm text-muted">Load more weeks to see a trend</div>
+      }
+    </div>
+
+    <div class="border border-border rounded-xl p-4 mb-9">
+      <div class="text-sm font-bold mb-3">What you could do better</div>
+      <ul class="m-0 pl-5 flex flex-col gap-2">
+        @for (tip of coachingTips(); track tip) {
+          <li class="text-sm text-body-tint leading-normal">{{ tip }}</li>
+        }
+      </ul>
+    </div>
+
+    <div class="mb-9">
+      <div class="text-base font-bold mb-3">Weekly mileage</div>
+      <div class="border border-border rounded-xl p-4">
+        <div class="h-32 flex items-end gap-0.5">
+          @for (bar of mileageChart(); track bar.key) {
+            <div
+              class="flex-1 h-full flex items-end"
+              [title]="bar.tooltip"
+              [attr.aria-label]="bar.tooltip"
+              role="img"
+              tabindex="0"
+            >
+              <div
+                class="w-full max-w-6 mx-auto rounded-t-[4px] bg-accent"
+                [style.height.%]="bar.heightPercent === 0 ? 2 : bar.heightPercent"
+              ></div>
+            </div>
+          }
+        </div>
+        <div class="flex gap-0.5 mt-1.5">
+          @for (bar of mileageChart(); track bar.key) {
+            <div class="flex-1 text-center text-[10px] text-muted">{{ bar.label }}</div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-9">
+      <div class="text-base font-bold mb-3">Pace trend</div>
+      <div class="text-xs text-muted mb-2">Shorter bars = faster pace</div>
+      <div class="border border-border rounded-xl p-4">
+        <div class="h-32 flex items-end gap-0.5">
+          @for (bar of paceChart(); track bar.key) {
+            <div
+              class="flex-1 h-full flex items-end"
+              [title]="bar.tooltip"
+              [attr.aria-label]="bar.tooltip"
+              role="img"
+              tabindex="0"
+            >
+              <div
+                class="w-full max-w-6 mx-auto rounded-t-[4px] bg-accent"
+                [style.height.%]="bar.heightPercent === 0 ? 2 : bar.heightPercent"
+              ></div>
+            </div>
+          }
+        </div>
+        <div class="flex gap-0.5 mt-1.5">
+          @for (bar of paceChart(); track bar.key) {
+            <div class="flex-1 text-center text-[10px] text-muted">{{ bar.label }}</div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="text-base font-bold mb-3">Day-of-week pattern</div>
+      <div class="border border-border rounded-xl p-4">
+        <div class="h-24 flex items-end gap-1.5">
+          @for (bar of dayOfWeekChart(); track bar.key) {
+            <div
+              class="flex-1 h-full flex items-end"
+              [title]="bar.tooltip"
+              [attr.aria-label]="bar.tooltip"
+              role="img"
+              tabindex="0"
+            >
+              <div
+                class="w-full max-w-8 mx-auto rounded-t-[4px] bg-accent"
+                [style.height.%]="bar.heightPercent === 0 ? 2 : bar.heightPercent"
+              ></div>
+            </div>
+          }
+        </div>
+        <div class="flex gap-1.5 mt-1.5">
+          @for (bar of dayOfWeekChart(); track bar.key) {
+            <div class="flex-1 text-center text-[11px] text-muted">{{ bar.label }}</div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>
