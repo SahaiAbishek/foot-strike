@@ -5,6 +5,7 @@ import { AuthUser, Role } from '../models/auth.model';
 import { API_BASE_URL } from '../config/api';
 import { DistanceUnit } from '../utils/units';
 import { Runs } from './runs';
+import { TrainingPlan } from './training-plan';
 
 interface StravaStatusResponse {
   connected: boolean;
@@ -24,6 +25,7 @@ function loadStoredUnit(): DistanceUnit {
 export class AuthState {
   private readonly http = inject(HttpClient);
   private readonly runs = inject(Runs);
+  private readonly trainingPlan = inject(TrainingPlan);
   private sessionCheck$: Observable<void> | null = null;
 
   readonly currentUser = signal<AuthUser | null>(null);
@@ -152,10 +154,11 @@ export class AuthState {
     }
   }
 
-  /** Flips the connected flag off and wipes any previously loaded runs/stats in one place. */
+  /** Flips the connected flag off and wipes any previously loaded runs/stats/plan in one place. */
   private markStravaDisconnected(): void {
     this.stravaConnected.set(false);
     this.runs.clear();
+    this.trainingPlan.clear();
   }
 
   toggleWeeklyEmail(): void {

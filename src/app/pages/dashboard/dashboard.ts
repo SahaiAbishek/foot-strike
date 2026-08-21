@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, untracked
 import { AuthState } from '../../services/auth-state';
 import { Runs } from '../../services/runs';
 import { RunAnalytics, WeeklySummary } from '../../services/analytics';
+import { TrainingPlan, WorkoutType } from '../../services/training-plan';
 import { formatDistance, formatPace, formatStreak, paceSecondsPerUnit } from '../../utils/units';
 
 interface WeekRow {
@@ -17,7 +18,25 @@ interface ChartBar {
   heightPercent: number;
 }
 
+interface PlanRow {
+  id: number;
+  dayIndex: number;
+  dateLabel: string;
+  workoutLabel: string;
+  distanceLabel: string;
+  paceLabel: string;
+  done: boolean;
+  isRest: boolean;
+}
+
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+const WORKOUT_LABELS: Record<WorkoutType, string> = {
+  REST: 'Rest',
+  EASY: 'Easy run',
+  TEMPO: 'Tempo run',
+  LONG: 'Long run',
+};
 
 @Component({
   selector: 'app-dashboard',
@@ -29,6 +48,7 @@ export class Dashboard {
   protected readonly auth = inject(AuthState);
   protected readonly runs = inject(Runs);
   protected readonly analytics = inject(RunAnalytics);
+  protected readonly trainingPlan = inject(TrainingPlan);
 
   protected readonly dayLabels = DAY_LABELS;
 
@@ -44,6 +64,36 @@ export class Dashboard {
           : '--',
       streak: formatStreak(stats.streakDays),
     };
+  });
+
+  protected readonly planRows = computed<PlanRow[]>(() => {
+    const week = this.trainingPlan.week();
+    const unit = this.auth.unit();
+    if (!week) {
+      return [];
+    }
+    return [...week.days]
+      .sort((a, b) => a.dayIndex - b.dayIndex)
+      .map((day) => ({
+        id: day.id,
+        dayIndex: day.dayIndex,
+        dateLabel: formatWeekLabel(addDays(week.weekStart, day.dayIndex)),
+        workoutLabel: WORKOUT_LABELS[day.workoutType],
+        distanceLabel: day.workoutType === 'REST' ? '—' : formatDistance(day.targetDistanceMeters, unit),
+        paceLabel: day.targetPaceSecondsPerKm !== null ? formatPace(day.targetPaceSecondsPerKm, 1000, unit) : '—',
+        done: day.done,
+        isRest: day.workoutType === 'REST',
+      }));
+  });
+
+  protected readonly planTotalLabel = computed(() => {
+    const week = this.trainingPlan.week();
+    return week ? formatDistance(week.totalDistanceMeters, this.auth.unit()) : '';
+  });
+
+  protected readonly planWeekLabel = computed(() => {
+    const week = this.trainingPlan.week();
+    return week ? `${formatWeekLabel(week.weekStart)} – ${formatWeekLabel(addDays(week.weekStart, 6))}` : '';
   });
 
   protected readonly weekRows = computed<WeekRow[]>(() => {
@@ -179,6 +229,7 @@ export class Dashboard {
         untracked(() => {
           this.runs.loadFromStrava();
           this.analytics.loadInitial();
+          this.trainingPlan.load();
         });
       }
     });
@@ -195,11 +246,32 @@ export class Dashboard {
   loadMoreWeeks(): void {
     this.analytics.loadMoreWeeks();
   }
+
+  generatePlan(): void {
+    this.trainingPlan.generate();
+  }
+
+  regeneratePlan(): void {
+    if (confirm("Regenerating will discard this week's checked-off progress. Continue?")) {
+      this.trainingPlan.generate();
+    }
+  }
+
+  togglePlanDay(dayId: number, event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.trainingPlan.setDone(dayId, checked);
+  }
 }
 
 function formatWeekLabel(weekStart: string): string {
   const date = new Date(`${weekStart}T00:00:00Z`);
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+}
+
+function addDays(isoDate: string, days: number): string {
+  const date = new Date(`${isoDate}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
 }
 
 function lastRunDate(weeks: WeeklySummary[]): Date | null {
