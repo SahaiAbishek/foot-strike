@@ -12,6 +12,10 @@ export function formatDistance(meters: number, unit: DistanceUnit): string {
   return `${value.toFixed(1)} ${unit}`;
 }
 
+export function toMeters(value: number, unit: DistanceUnit): number {
+  return value * metersPerUnit(unit);
+}
+
 export function formatDuration(totalSeconds: number): string {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = Math.round(totalSeconds % 60);
@@ -30,6 +34,19 @@ export function formatPace(movingSeconds: number, meters: number, unit: Distance
   if (secondsPerUnit === null) {
     return '--';
   }
+  const minutes = Math.floor(secondsPerUnit / 60);
+  const seconds = Math.round(secondsPerUnit % 60);
+  return `${minutes}:${seconds.toString().padStart(2, '0')} /${unit}`;
+}
+
+/** Formats an already-computed seconds-per-km pace target (e.g. a training plan day's
+ * targetPaceSecondsPerKm), unlike formatPace which derives pace from a run's raw
+ * moving-time/distance. */
+export function formatPaceFromSecondsPerKm(secondsPerKm: number | null, unit: DistanceUnit): string {
+  if (secondsPerKm === null) {
+    return '—';
+  }
+  const secondsPerUnit = secondsPerKm * (metersPerUnit(unit) / METERS_PER_KM);
   const minutes = Math.floor(secondsPerUnit / 60);
   const seconds = Math.round(secondsPerUnit % 60);
   return `${minutes}:${seconds.toString().padStart(2, '0')} /${unit}`;

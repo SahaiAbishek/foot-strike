@@ -19,6 +19,18 @@
           Dashboard
         </a>
         <a
+          routerLink="/planning"
+          routerLinkActive
+          #planningActive="routerLinkActive"
+          [class.text-accent]="planningActive.isActive"
+          [class.border-accent]="planningActive.isActive"
+          [class.text-muted]="!planningActive.isActive"
+          [class.border-transparent]="!planningActive.isActive"
+          class="cursor-pointer py-3.5 px-1 text-[15px] font-semibold border-b-2 hover:text-accent no-underline"
+        >
+          Planning
+        </a>
+        <a
           routerLink="/settings"
           routerLinkActive
           #settingsActive="routerLinkActive"

@@ -1,0 +1,194 @@
+<div class="max-w-[720px] mx-auto px-8 py-10">
+  <div class="font-extrabold text-2xl mb-8">Training plan</div>
+
+  @if (trainingPlan.error(); as err) {
+    <div class="mb-6 border border-border rounded-xl p-4 bg-accent-tint text-sm text-body-tint">{{ err }}</div>
+  }
+
+  @if (!trainingPlan.plan() || showForm()) {
+    <!-- Questionnaire -->
+    <div class="border border-border rounded-xl p-6">
+      <div class="font-bold text-lg mb-1">What are you training for?</div>
+      <div class="text-sm text-muted mb-5">We'll build a plan around your goal and your current running.</div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+        @for (option of goalOptions; track option.value) {
+          <button
+            type="button"
+            (click)="selectGoal(option.value)"
+            class="text-left border rounded-xl p-4 cursor-pointer"
+            [class.border-accent]="goalType() === option.value"
+            [class.bg-accent-tint]="goalType() === option.value"
+            [class.border-border]="goalType() !== option.value"
+            [class.bg-white]="goalType() !== option.value"
+          >
+            <div class="font-semibold text-sm">{{ option.label }}</div>
+            <div class="text-xs text-muted mt-0.5">{{ option.lengthLabel }}</div>
+          </button>
+        }
+      </div>
+
+      @if (goalType()) {
+        <div class="flex flex-col gap-5 border-t border-border pt-5">
+          @if (needsRaceDate()) {
+            <div>
+              <label class="block text-sm font-semibold mb-1.5" for="race-date">Target race date</label>
+              <input
+                id="race-date"
+                type="date"
+                [ngModel]="targetRaceDate()"
+                (ngModelChange)="targetRaceDate.set($event)"
+                class="h-10 px-3 rounded-lg border border-border text-sm w-full sm:w-auto"
+              />
+            </div>
+          }
+
+          <div>
+            <label class="block text-sm font-semibold mb-1.5" for="weekly-mileage">
+              Current weekly distance ({{ auth.unit() }})
+            </label>
+            <input
+              id="weekly-mileage"
+              type="number"
+              min="0"
+              step="0.5"
+              placeholder="e.g. 20"
+              [ngModel]="weeklyMileage()"
+              (ngModelChange)="weeklyMileage.set($event)"
+              class="h-10 px-3 rounded-lg border border-border text-sm w-full sm:w-40"
+            />
+            <div class="text-xs text-muted mt-1">Leave blank if you're just getting started.</div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold mb-1.5" for="runs-per-week">Runs per week right now</label>
+            <select
+              id="runs-per-week"
+              [ngModel]="runsPerWeek()"
+              (ngModelChange)="runsPerWeek.set($event)"
+              class="h-10 px-3 rounded-lg border border-border text-sm w-full sm:w-40"
+            >
+              @for (n of runsPerWeekOptions; track n) {
+                <option [value]="n">{{ n }} days/week</option>
+              }
+            </select>
+          </div>
+
+          <div class="flex flex-col gap-4 border-t border-border pt-5">
+            <div class="text-sm font-semibold -mb-1">Recent race times</div>
+            <div class="text-xs text-muted -mt-3">
+              Used to set your training paces. Not sure? The defaults below are fine to start with.
+            </div>
+            <div class="flex flex-wrap gap-6">
+              <app-duration-input
+                label="Goal marathon time"
+                [(totalSeconds)]="marathonTimeSeconds"
+              />
+              <app-duration-input
+                label="Recent 10K time (optional)"
+                [(totalSeconds)]="tenKTimeSeconds"
+              />
+              <app-duration-input
+                label="Recent 5K time (optional)"
+                [(totalSeconds)]="fiveKTimeSeconds"
+              />
+            </div>
+          </div>
+
+          @if (trainingPlan.notEnoughTimeError(); as timeErr) {
+            <div class="border border-border rounded-xl p-4 bg-accent-tint text-sm text-body-tint">{{ timeErr }}</div>
+          }
+
+          <div class="flex gap-3">
+            <button
+              type="button"
+              (click)="submit()"
+              [disabled]="!canSubmit() || trainingPlan.isGenerating()"
+              class="h-11 px-5 rounded-[10px] border-none bg-accent text-white font-bold text-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{ trainingPlan.isGenerating() ? 'Generating…' : 'Generate my plan' }}
+            </button>
+            @if (trainingPlan.plan()) {
+              <button
+                type="button"
+                (click)="cancelNewPlan()"
+                class="h-11 px-5 rounded-[10px] font-bold text-sm cursor-pointer border bg-white"
+              >
+                Cancel
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  } @else {
+    <!-- Active plan -->
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <div class="font-bold text-lg">{{ planGoalLabel() }} plan</div>
+        <div class="text-sm text-muted mt-0.5">
+          {{ trainingPlan.plan()!.lengthWeeks }} weeks
+          @if (trainingPlan.plan()!.targetRaceDate) {
+            &middot; race day {{ trainingPlan.plan()!.targetRaceDate }}
+          }
+        </div>
+      </div>
+      <button
+        type="button"
+        (click)="startNewPlan()"
+        class="h-9 px-4 rounded-lg font-bold text-[13px] cursor-pointer border bg-white"
+      >
+        Start a new plan
+      </button>
+    </div>
+
+    <div class="flex flex-col gap-6">
+      @for (week of planWeeks(); track week.weekNumber) {
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <div class="text-sm font-bold">
+              Week {{ week.weekNumber }}
+              <span class="text-muted font-normal">&middot; {{ week.phaseLabel }} &middot; {{ week.dateRangeLabel }}</span>
+            </div>
+            <div class="text-sm font-semibold">{{ week.totalLabel }}</div>
+          </div>
+          <div class="overflow-x-auto border border-border rounded-xl">
+            <table class="w-full border-collapse text-sm">
+              <thead>
+                <tr class="border-b border-border">
+                  <th class="text-left font-semibold text-xs text-muted py-2.5 px-3">Day</th>
+                  <th class="text-left font-semibold text-xs text-muted py-2.5 px-3">Workout</th>
+                  <th class="text-right font-semibold text-xs text-muted py-2.5 px-3">Distance</th>
+                  <th class="text-right font-semibold text-xs text-muted py-2.5 px-3">Target pace</th>
+                  <th class="text-center font-semibold text-xs text-muted py-2.5 px-3">Done</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of week.rows; track row.id) {
+                  <tr class="border-b border-border last:border-b-0">
+                    <td class="py-2.5 px-3 font-medium">
+                      {{ row.dayLabel }}
+                      <span class="text-muted font-normal">{{ row.dateLabel }}</span>
+                    </td>
+                    <td class="py-2.5 px-3 text-body-tint">{{ row.workoutLabel }}</td>
+                    <td class="py-2.5 px-3 text-right text-body-tint">{{ row.distanceLabel }}</td>
+                    <td class="py-2.5 px-3 text-right text-body-tint">{{ row.paceLabel }}</td>
+                    <td class="py-2.5 px-3 text-center">
+                      <input
+                        type="checkbox"
+                        [checked]="row.done"
+                        [disabled]="row.isRest"
+                        (change)="toggleDay(row.id, $event)"
+                        class="w-4 h-4 cursor-pointer disabled:cursor-not-allowed"
+                      />
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

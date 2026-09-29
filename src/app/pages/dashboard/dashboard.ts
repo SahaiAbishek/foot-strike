@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, untracked } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { AuthState } from '../../services/auth-state';
 import { Runs } from '../../services/runs';
 import { RunAnalytics, WeeklySummary } from '../../services/analytics';
-import { TrainingPlan, WorkoutType } from '../../services/training-plan';
+import { TrainingPlan } from '../../services/training-plan';
 import { formatDistance, formatPace, formatStreak, paceSecondsPerUnit } from '../../utils/units';
+import { DAY_LABELS, addDays } from '../../utils/training-plan-view';
 
 interface WeekRow {
   weekLabel: string;
@@ -18,29 +20,16 @@ interface ChartBar {
   heightPercent: number;
 }
 
-interface PlanRow {
-  id: number;
-  dayIndex: number;
-  dateLabel: string;
-  workoutLabel: string;
-  distanceLabel: string;
-  paceLabel: string;
-  done: boolean;
-  isRest: boolean;
-}
-
-const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-const WORKOUT_LABELS: Record<WorkoutType, string> = {
-  REST: 'Rest',
-  EASY: 'Easy run',
-  TEMPO: 'Tempo run',
-  LONG: 'Long run',
-};
+type PlanTeaser =
+  | { kind: 'no-plan' }
+  | { kind: 'not-started'; weeksUntilStart: number }
+  | { kind: 'completed' }
+  | { kind: 'active'; runsDone: number; runsTotal: number; totalLabel: string; missedCount: number };
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
+  imports: [RouterLink],
   templateUrl: './dashboard.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -66,34 +55,33 @@ export class Dashboard {
     };
   });
 
-  protected readonly planRows = computed<PlanRow[]>(() => {
-    const week = this.trainingPlan.week();
-    const unit = this.auth.unit();
-    if (!week) {
-      return [];
+  protected readonly planTeaser = computed<PlanTeaser | null>(() => {
+    const current = this.trainingPlan.currentWeek();
+    if (!current) {
+      return null;
     }
-    return [...week.days]
-      .sort((a, b) => a.dayIndex - b.dayIndex)
-      .map((day) => ({
-        id: day.id,
-        dayIndex: day.dayIndex,
-        dateLabel: formatWeekLabel(addDays(week.weekStart, day.dayIndex)),
-        workoutLabel: WORKOUT_LABELS[day.workoutType],
-        distanceLabel: day.workoutType === 'REST' ? '—' : formatDistance(day.targetDistanceMeters, unit),
-        paceLabel: day.targetPaceSecondsPerKm !== null ? formatPace(day.targetPaceSecondsPerKm, 1000, unit) : '—',
-        done: day.done,
-        isRest: day.workoutType === 'REST',
-      }));
-  });
-
-  protected readonly planTotalLabel = computed(() => {
-    const week = this.trainingPlan.week();
-    return week ? formatDistance(week.totalDistanceMeters, this.auth.unit()) : '';
-  });
-
-  protected readonly planWeekLabel = computed(() => {
-    const week = this.trainingPlan.week();
-    return week ? `${formatWeekLabel(week.weekStart)} – ${formatWeekLabel(addDays(week.weekStart, 6))}` : '';
+    if (current.status === 'ACTIVE' && current.week) {
+      const week = current.week;
+      const runDays = week.days.filter((d) => d.workoutType !== 'REST');
+      const todayIso = new Date().toISOString().slice(0, 10);
+      const missedCount = runDays.filter(
+        (d) => !d.done && addDays(week.weekStart, d.dayIndex) < todayIso,
+      ).length;
+      return {
+        kind: 'active',
+        runsDone: runDays.filter((d) => d.done).length,
+        runsTotal: runDays.length,
+        totalLabel: formatDistance(week.totalDistanceMeters, this.auth.unit()),
+        missedCount,
+      };
+    }
+    if (current.status === 'NOT_STARTED') {
+      return { kind: 'not-started', weeksUntilStart: current.weeksUntilStart ?? 0 };
+    }
+    if (current.status === 'COMPLETED') {
+      return { kind: 'completed' };
+    }
+    return { kind: 'no-plan' };
   });
 
   protected readonly weekRows = computed<WeekRow[]>(() => {
@@ -224,12 +212,12 @@ export class Dashboard {
 
   constructor() {
     this.auth.refreshStravaStatus();
+    this.trainingPlan.loadCurrentWeek();
     effect(() => {
       if (this.auth.stravaConnected()) {
         untracked(() => {
           this.runs.loadFromStrava();
           this.analytics.loadInitial();
-          this.trainingPlan.load();
         });
       }
     });
@@ -240,38 +228,20 @@ export class Dashboard {
   }
 
   sync(): void {
-    this.runs.syncFromStrava(() => this.analytics.loadInitial());
+    this.runs.syncFromStrava(() => {
+      this.analytics.loadInitial();
+      this.trainingPlan.loadCurrentWeek();
+    });
   }
 
   loadMoreWeeks(): void {
     this.analytics.loadMoreWeeks();
-  }
-
-  generatePlan(): void {
-    this.trainingPlan.generate();
-  }
-
-  regeneratePlan(): void {
-    if (confirm("Regenerating will discard this week's checked-off progress. Continue?")) {
-      this.trainingPlan.generate();
-    }
-  }
-
-  togglePlanDay(dayId: number, event: Event): void {
-    const checked = (event.target as HTMLInputElement).checked;
-    this.trainingPlan.setDone(dayId, checked);
   }
 }
 
 function formatWeekLabel(weekStart: string): string {
   const date = new Date(`${weekStart}T00:00:00Z`);
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-}
-
-function addDays(isoDate: string, days: number): string {
-  const date = new Date(`${isoDate}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
 }
 
 function lastRunDate(weeks: WeeklySummary[]): Date | null {

@@ -1,0 +1,37 @@
+<div>
+  <label class="block text-sm font-semibold mb-1.5">{{ label() }}</label>
+  <div class="flex items-center gap-1.5">
+    <input
+      type="number"
+      min="0"
+      aria-label="Hours"
+      [ngModel]="hours()"
+      (ngModelChange)="setHours($event)"
+      class="h-10 w-16 px-2 rounded-lg border border-border text-sm text-center"
+    />
+    <span class="text-sm text-muted">h</span>
+    <input
+      type="number"
+      min="0"
+      max="59"
+      aria-label="Minutes"
+      [ngModel]="minutes()"
+      (ngModelChange)="setMinutes($event)"
+      class="h-10 w-16 px-2 rounded-lg border border-border text-sm text-center"
+    />
+    <span class="text-sm text-muted">m</span>
+    <input
+      type="number"
+      min="0"
+      max="59"
+      aria-label="Seconds"
+      [ngModel]="seconds()"
+      (ngModelChange)="setSeconds($event)"
+      class="h-10 w-16 px-2 rounded-lg border border-border text-sm text-center"
+    />
+    <span class="text-sm text-muted">s</span>
+  </div>
+  @if (hint()) {
+    <div class="text-xs text-muted mt-1">{{ hint() }}</div>
+  }
+</div>

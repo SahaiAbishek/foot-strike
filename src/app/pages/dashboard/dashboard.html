@@ -55,86 +55,60 @@
     }
 
     <div class="mb-9">
-      <div class="flex items-center justify-between mb-3">
-        <div class="text-base font-bold">
-          Next week's plan{{ trainingPlan.week() ? ' — ' + planWeekLabel() : '' }}
-        </div>
-        @if (trainingPlan.week()) {
-          <button
-            type="button"
-            (click)="regeneratePlan()"
-            [disabled]="trainingPlan.isGenerating()"
-            class="h-9 px-4 rounded-lg font-bold text-[13px] cursor-pointer border bg-white disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {{ trainingPlan.isGenerating() ? 'Regenerating…' : 'Regenerate' }}
-          </button>
+      <div class="text-base font-bold mb-3">Training plan</div>
+      @if (planTeaser(); as teaser) {
+        @switch (teaser.kind) {
+          @case ('no-plan') {
+            <div class="max-w-[480px] bg-accent-tint border border-border rounded-[14px] p-8">
+              <div class="font-bold text-lg mb-2">Set up a training plan</div>
+              <div class="text-sm text-body-tint leading-normal mb-5">
+                Answer a few questions about your goal and experience, and we'll build a plan around it.
+              </div>
+              <a
+                routerLink="/planning"
+                class="inline-block h-11 px-5 rounded-[10px] bg-accent text-white font-bold text-sm leading-[44px] no-underline"
+              >
+                Get started
+              </a>
+            </div>
+          }
+          @case ('not-started') {
+            <div class="border border-border rounded-xl p-4 flex items-center justify-between">
+              <div class="text-sm text-body-tint">
+                Your plan starts in {{ teaser.weeksUntilStart }} week{{ teaser.weeksUntilStart === 1 ? '' : 's' }}.
+              </div>
+              <a routerLink="/planning" class="text-sm font-semibold text-accent no-underline">View plan</a>
+            </div>
+          }
+          @case ('completed') {
+            <div class="border border-border rounded-xl p-4 flex items-center justify-between">
+              <div class="text-sm text-body-tint">You've completed your training plan.</div>
+              <a routerLink="/planning" class="text-sm font-semibold text-accent no-underline">Start a new plan</a>
+            </div>
+          }
+          @case ('active') {
+            <div class="border border-border rounded-xl p-4 flex items-center justify-between">
+              <div class="flex gap-6">
+                <div>
+                  <div class="text-xs text-muted mb-1">This week</div>
+                  <div class="font-extrabold text-[22px]">
+                    {{ teaser.runsDone }}/{{ teaser.runsTotal }} runs
+                    @if (teaser.missedCount > 0) {
+                      <span class="text-muted font-normal text-sm">
+                        &middot; {{ teaser.missedCount }} missed
+                      </span>
+                    }
+                  </div>
+                </div>
+                <div>
+                  <div class="text-xs text-muted mb-1">Planned distance</div>
+                  <div class="font-extrabold text-[22px]">{{ teaser.totalLabel }}</div>
+                </div>
+              </div>
+              <a routerLink="/planning" class="text-sm font-semibold text-accent no-underline">View full plan</a>
+            </div>
+          }
         }
-      </div>
-
-      @if (trainingPlan.error(); as planErr) {
-        <div class="mb-3 border border-border rounded-xl p-4 bg-accent-tint text-sm text-body-tint">
-          {{ planErr }}
-        </div>
-      }
-
-      @if (!trainingPlan.week()) {
-        <div class="max-w-[480px] bg-accent-tint border border-border rounded-[14px] p-8">
-          <div class="font-bold text-lg mb-2">Get next week's plan</div>
-          <div class="text-sm text-body-tint leading-normal mb-5">
-            Generate a training plan based on your last 8 weeks of runs.
-          </div>
-          <button
-            type="button"
-            (click)="generatePlan()"
-            [disabled]="trainingPlan.isGenerating()"
-            class="h-11 px-5 rounded-[10px] border-none bg-accent text-white font-bold text-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {{ trainingPlan.isGenerating() ? 'Generating…' : "Generate next week's plan" }}
-          </button>
-        </div>
-      } @else {
-        <div class="overflow-x-auto border border-border rounded-xl">
-          <table class="w-full border-collapse text-sm">
-            <thead>
-              <tr class="border-b border-border">
-                <th class="text-left font-semibold text-xs text-muted py-2.5 px-3">Day</th>
-                <th class="text-left font-semibold text-xs text-muted py-2.5 px-3">Workout</th>
-                <th class="text-right font-semibold text-xs text-muted py-2.5 px-3">Distance</th>
-                <th class="text-right font-semibold text-xs text-muted py-2.5 px-3">Pace target</th>
-                <th class="text-center font-semibold text-xs text-muted py-2.5 px-3">Done</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (row of planRows(); track row.id) {
-                <tr class="border-b border-border last:border-b-0">
-                  <td class="py-2.5 px-3 font-medium">
-                    {{ dayLabels[row.dayIndex] }}
-                    <span class="text-muted font-normal">{{ row.dateLabel }}</span>
-                  </td>
-                  <td class="py-2.5 px-3 text-body-tint">{{ row.workoutLabel }}</td>
-                  <td class="py-2.5 px-3 text-right text-body-tint">{{ row.distanceLabel }}</td>
-                  <td class="py-2.5 px-3 text-right text-body-tint">{{ row.paceLabel }}</td>
-                  <td class="py-2.5 px-3 text-center">
-                    <input
-                      type="checkbox"
-                      [checked]="row.done"
-                      [disabled]="row.isRest"
-                      (change)="togglePlanDay(row.id, $event)"
-                      class="w-4 h-4 cursor-pointer disabled:cursor-not-allowed"
-                    />
-                  </td>
-                </tr>
-              }
-            </tbody>
-            <tfoot>
-              <tr>
-                <td class="py-2.5 px-3 font-semibold" colspan="2">Total</td>
-                <td class="py-2.5 px-3 text-right font-semibold">{{ planTotalLabel() }}</td>
-                <td colspan="2"></td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
       }
     </div>
 
